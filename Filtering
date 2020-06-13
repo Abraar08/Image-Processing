@@ -1,0 +1,69 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int argc, char **argv)
+{
+	Mat img,img1,kernel;
+	int x, y, kr, kc, krr, kcc, xx, yy, ri;
+	img = imread("D:/Projects/Opencv/Chapter 3/Filters/smoothing filters/Fig0333(a)(test_pattern_blurring_orig).tif", IMREAD_GRAYSCALE);
+	kernel = Mat::ones(3, 3, CV_8UC1);
+
+	img1 = Mat::zeros(img.rows, img.cols, CV_8UC1);
+
+
+
+	for (x = 0; x < img.rows; x++)
+	{
+		for (y = 0; y < img.cols; y++)
+		{
+			for (kr = 0; kr < kernel.rows; kr++)
+			{
+				krr = kernel.rows - 1 - kr;
+				for (kc = 0; kc < kernel.cols; kc++)
+				{
+					kcc = kernel.cols - 1 - kc;
+					xx = kr - 1 + x;
+					yy = kc - 1 + y;
+
+					if (xx < 0 || yy < 0)
+					{
+						ri = 0;
+					}
+
+					else if (xx > (img.rows - 1) || yy > (img.cols - 1))
+					{
+						ri = 0;
+					}
+
+					else
+					{
+						ri = (img.at<uchar>(xx, yy)*kernel.at<uchar>(krr, kcc));
+
+					}
+					img1.at<uchar>(x, y) += ri;
+					
+				}
+			}
+			
+		}
+		
+	
+	}
+	
+	cout << img1 << endl;
+	imshow("Orginal", img);
+	imshow("Smoothened", img1);
+	
+	waitKey(0);
+	getchar();
+	return 0;
+
+
+}
+
