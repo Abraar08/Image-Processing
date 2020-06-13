@@ -1,0 +1,191 @@
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include<iostream>
+
+using namespace std;
+using namespace cv;
+
+int con_stretch(int p, int r1, int s1, int r2, int s2)
+{
+	float result = 0;
+	if (0 <= p && p <= r1)
+	{
+		result = (s1 / r1)*p;
+	}
+	else if (r1 < p && p <= r2)
+	{
+		result = ((s2 - s1) / (r2 - r1))*(p - r1) + s1;
+	}
+	else if (r2 < p && p < 255)
+	{
+		result = ((255 - s2) / (255 - r2))*(p - r2) + s2;
+	}
+	return (int)result;
+}
+
+
+int negative(Mat img, int r, int c)
+{
+	imshow("orginal Image", img);
+
+	Mat img1;
+	img1 = img;
+
+	for (r = 0; r < img1.rows; r++)
+	{
+		for (c = 0; c < img1.cols; c++)
+		{
+			img1.at<uchar>(r, c) = 255 - img1.at<uchar>(r, c);
+		}
+	}
+
+	imshow("Transformed", img1);
+	waitKey();
+	getchar();
+	return 0;
+}
+
+int log(Mat img, int  r, int  c)
+{
+	int a;
+	Mat img1 = img;
+	img1.convertTo(img1, CV_64F);
+	cout << "Enter the constant :" << " ";
+	cin >> a;
+
+	for (r = 0; r < img1.rows; r++)
+	{
+		for (c = 0; c < img1.cols; c++)
+		{
+			img1.at<double>(r, c) = log10(1 + (img1.at<double>(r, c) / 255.0))*255.0*a;
+		}
+	}
+
+	cout << img.channels();
+	img1.convertTo(img1, CV_8UC1);
+
+	namedWindow("orginal", WINDOW_AUTOSIZE);
+	namedWindow("transformed", WINDOW_AUTOSIZE);
+
+	imshow("orginal", img);
+	imshow("transformed", img1);
+
+	waitKey();
+	getchar();
+	return 0;
+}
+
+int gamma(Mat img, int r, int c)
+{
+	int a;
+	Mat img1 = img;
+	img1.convertTo(img1, CV_64F);
+
+	cout << "Enter the value of gamma:" << " ";
+	cin >> a;
+
+	for (r = 0; r < img1.rows; r++)
+	{
+		for (c = 0; c < img1.cols; c++)
+		{
+			img1.at<double>(r, c) = pow(img1.at<double>(r, c) / 255.0, a)*255.0;
+		}
+	}
+
+	img1.convertTo(img1, CV_8UC1);
+
+	namedWindow("orginal", WINDOW_AUTOSIZE);
+	namedWindow("transformed", WINDOW_AUTOSIZE);
+
+	imshow("orginal", img);
+	imshow("transformed", img1);
+
+	waitKey();
+	getchar();
+	return 0;
+
+}
+
+int pwl(Mat img, int r, int c)
+{
+	int r1, r2, s1, s2;
+	Mat img1 = img;
+	cout << "Enter the value of r1,s1,r2,s2 :" << endl;
+	cin >> r1 >> s1 >> r2 >> s2;
+	cout << "r1:" << r1;
+	cout << "s1" << s1;
+	cout << "r2" << r2;
+	cout << "s2" << s2;
+
+
+	img1.convertTo(img1, CV_64F);
+
+	for (r = 0; r < img1.rows; r++)
+	{
+		for (c = 0; c < img1.cols; c++)
+		{
+			img1.at<double>(r, c) = con_stretch(img1.at<double>(r, c), r1, s1, r2, s2);
+		}
+	}
+	img1.convertTo(img1, CV_8UC1);
+
+	namedWindow("orginal", WINDOW_AUTOSIZE);
+	namedWindow("contrast stretched", WINDOW_AUTOSIZE);
+	imshow("orginal", img);
+	imshow("contrast stretched", img1);
+
+	waitKey();
+	getchar();
+	return 0;
+}
+
+
+
+
+int main(int argc, char** argv)
+{
+	int x,r=0,c=0;
+	Mat img = imread("D:/Projects/Opencv/Chapter 3/Intensity transformation/negative/Fig0304(a)(breast_digital_Xray).tif", IMREAD_GRAYSCALE);
+
+	cout << "----TRANSFORMS---- "<<endl;
+	cout << "1. NEGATIVE  2. LOG  3. GAMMA  4. PIECWISE-LINEAR" << endl;
+	cin >> x;
+	switch (x)
+	{
+	case 1: 
+	{
+		cout << "choice is : Image negative" << endl;
+		negative(img,r,c);
+		break;
+	}
+	case 2: 
+	{
+		cout << "choice is : log " << endl;
+		log(img, r, c);
+		break;
+	}
+		
+	case 3: 
+	{
+		cout << "choice is : gamma " << endl;
+		gamma(img, r, c);
+		break;
+	}
+	case 4:
+	{
+		cout << "choice is : Piece-wise linear " << endl;
+		pwl(img, r, c);
+		break;
+	}
+	default:
+	{
+		cout << "Enter options 1-4 (only)!" << endl;
+		break;
+
+	}
+	
+	}
+	return 0;
+}
+
