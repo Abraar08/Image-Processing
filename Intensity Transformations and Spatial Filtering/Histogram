@@ -1,0 +1,58 @@
+#include<iostream>
+#include<opencv2/opencv_modules.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+
+void pixelFrequency(Mat img, int intensity[])
+{
+	for (int j = 0; j < img.rows; j++)
+		for (int i = 0; i < img.cols; i++)
+			intensity[int(img.at<uchar>(j, i))]++;
+	cout << intensity << endl;
+}
+void pixelProbability(Mat img, double probability[], int intensity[])
+{
+	
+	for (int i = 0; i < 256; i++)
+		probability[i] = intensity[i] / double(img.rows * img.cols);
+}
+void cumuProbability(double probability[], double cumulativeProbability[])
+{
+	cumulativeProbability[0] = probability[0];
+	for (int i = 1; i < 256; i++)
+		cumulativeProbability[i] = probability[i] + cumulativeProbability[i - 1];
+}
+void histogramEqualization(Mat& img, int intensity[], double probability[], double cumulativeProbability[])
+{
+	pixelFrequency(img, intensity);
+	pixelProbability(img, probability, intensity);
+	cumuProbability(probability, cumulativeProbability);
+	for (int i = 0; i < 256; i++)
+		cumulativeProbability[i] = floor(cumulativeProbability[i] * 255);
+	for (int j = 0; j < img.rows; j++)
+	{
+		for (int i = 0; i < img.cols; i++)
+		{
+			img.at<uchar>(j, i) = cumulativeProbability[int(img.at<uchar>(j, i))];
+		}
+	}
+}
+int main()
+{
+	int intensity[256] = { 0 };
+	double probability[256] = { 0 };
+	double cumulativeProbability[256] = { 0 };
+	Mat img = imread("D:\\Projects\\Opencv\\Chapter 3\\histogram\\Fig0316(4)(bottom_left).tif", IMREAD_GRAYSCALE);
+	cout << img.size();
+	imshow("original", img);
+	histogramEqualization(img, intensity, probability, cumulativeProbability);
+	namedWindow("image", WINDOW_AUTOSIZE);
+	imshow("image", img);
+	waitKey(0);
+	return 0;
+}
