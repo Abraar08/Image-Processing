@@ -1,0 +1,237 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+
+Mat Frequency_filter(Mat padded, Mat kernel)
+{
+
+	int cxr, cyr, cxi, cyi;
+	Mat planes[] = { padded,Mat::zeros(padded.rows,padded.cols,CV_32FC1) };
+	Mat complex;
+	merge(planes, 2, complex);
+
+	dft(complex, complex);
+
+	split(complex, planes);
+
+	cxr = planes[0].cols / 2;
+	cyr = planes[0].rows / 2;
+
+	Mat q0r(planes[0], Rect(0, 0, cxr, cyr));
+	Mat q1r(planes[0], Rect(cxr, 0, cxr, cyr));
+	Mat q2r(planes[0], Rect(0, cyr, cxr, cyr));
+	Mat q3r(planes[0], Rect(cxr, cyr, cxr, cyr));
+
+	Mat temp;
+	q0r.copyTo(temp);
+	q3r.copyTo(q0r);
+	temp.copyTo(q3r);
+
+	q1r.copyTo(temp);
+	q2r.copyTo(q1r);
+	temp.copyTo(q2r);
+
+	cxi = planes[1].cols / 2;
+	cyi = planes[1].rows / 2;
+
+	Mat q0i(planes[1], Rect(0, 0, cxi, cyi));
+	Mat q1i(planes[1], Rect(cxi, 0, cxi, cyi));
+	Mat q2i(planes[1], Rect(0, cyi, cxi, cyi));
+	Mat q3i(planes[1], Rect(cxi, cyi, cxi, cyi));
+
+	Mat temp1;
+	q0i.copyTo(temp1);
+	q3i.copyTo(q0i);
+	temp1.copyTo(q3i);
+
+	q1i.copyTo(temp1);
+	q2i.copyTo(q1i);
+	temp1.copyTo(q2i);
+
+
+	Mat sharp_r, sharp_i, SHARP;
+
+	multiply(planes[0], kernel, sharp_r);
+	multiply(planes[1], kernel, sharp_i);
+
+	Mat sharp[] = { sharp_r, sharp_i };
+	merge(sharp, 2, SHARP);
+
+	magnitude(planes[0], planes[1], planes[0]);
+	planes[0] += Scalar::all(1);
+	log(planes[0], planes[0]);
+	normalize(planes[0], planes[0], 1, 0, NORM_MINMAX);
+	imshow("spectrum_L", planes[0]);
+
+	idft(SHARP, SHARP);
+	split(SHARP, sharp);
+
+	magnitude(sharp[0], sharp[1], sharp[0]);
+	normalize(sharp[0], sharp[0], 1, 0, NORM_MINMAX);
+
+	return sharp[0];
+
+}
+
+Mat Frequency_filter_e(Mat padded, Mat kernel, int c)
+	{
+	
+	int cxr, cyr, cxi, cyi;
+	Mat planes[] = { padded,Mat::zeros(padded.rows,padded.cols,CV_32FC1) };
+	normalize(planes[0], planes[0],1,0, NORM_MINMAX);
+
+	Mat complex;
+	merge(planes, 2, complex);
+	dft(complex, complex);
+	split(complex, planes);
+
+	cxr = planes[0].cols / 2;
+	cyr = planes[0].rows / 2;
+
+	Mat q0r(planes[0], Rect(0, 0, cxr, cyr));
+	Mat q1r(planes[0], Rect(cxr, 0, cxr, cyr));
+	Mat q2r(planes[0], Rect(0, cyr, cxr, cyr));
+	Mat q3r(planes[0], Rect(cxr, cyr, cxr, cyr));
+
+	Mat temp;
+	q0r.copyTo(temp);
+	q3r.copyTo(q0r);
+	temp.copyTo(q3r);
+
+	q1r.copyTo(temp);
+	q2r.copyTo(q1r);
+	temp.copyTo(q2r);
+
+	cxi = planes[1].cols / 2;
+	cyi = planes[1].rows / 2;
+
+	Mat q0i(planes[1], Rect(0, 0, cxi, cyi));
+	Mat q1i(planes[1], Rect(cxi, 0, cxi, cyi));
+	Mat q2i(planes[1], Rect(0, cyi, cxi, cyi));
+	Mat q3i(planes[1], Rect(cxi, cyi, cxi, cyi));
+
+	Mat temp1;
+	q0i.copyTo(temp1);
+	q3i.copyTo(q0i);
+	temp1.copyTo(q3i);
+
+	q1i.copyTo(temp1);
+	q2i.copyTo(q1i);
+	temp1.copyTo(q2i);
+
+	Mat sharp_r, sharp_i, SHARP;
+	multiply(planes[0], kernel, sharp_r);
+	multiply(planes[1], kernel, sharp_i);
+
+	double minr, maxr, mini, maxi;
+
+	minMaxIdx(sharp_r, &minr, &maxr);
+	minMaxIdx(sharp_i, &mini, &maxi);
+
+	sharp_r = sharp_r / maxr;
+	sharp_i = sharp_i / maxi;
+
+	Mat sharpr = planes[0] + c * sharp_r;
+	Mat sharpi = planes[1] + c * sharp_i;
+
+	Mat sharp[] = { sharpr, sharpi };
+	merge(sharp, 2, SHARP);
+
+	magnitude(planes[0], planes[1], planes[0]);
+	planes[0] += Scalar::all(1);
+	log(planes[0], planes[0]);
+	normalize(planes[0], planes[0], 1,0, NORM_MINMAX);
+	imshow("spectrum_E", planes[0]);
+
+	idft(SHARP, SHARP);
+
+	split(SHARP, sharp);
+
+	magnitude(sharp[0], sharp[1], sharp[0]);
+	normalize(sharp[0], sharp[0], 1,0, NORM_MINMAX);
+
+	return sharp[0];
+
+	}
+
+
+Mat kernel_(Mat padded)
+{
+	Mat kernel(padded.size(), CV_32FC1);
+	int i, j;
+
+	for (i = 0; i < kernel.rows; i++)
+	{
+		for (j = 0; j < kernel.cols; j++)
+		{
+			double d = sqrt(pow((i - kernel.rows / 2), 2) + pow((j - kernel.cols / 2), 2));
+			kernel.at<float>(i, j) = (-4)*pow(22/7, 2)*pow(d, 2);
+		}
+	}
+	//cout << kernel << endl;
+	return kernel;
+	
+}
+
+Mat add_border(Mat img)
+{
+	Mat padded;
+	int m, n, top, bottom, left, right;
+
+	m = getOptimalDFTSize(img.rows);
+	n = getOptimalDFTSize(img.cols);
+	top = (m - img.rows)/2;
+	bottom = top;
+	left = (n - img.cols)/2;
+	right = left;
+
+	copyMakeBorder(img, padded, top, bottom, left, right, BORDER_CONSTANT, 0);
+	padded.convertTo(padded, CV_32FC1);
+
+	return padded;
+}
+
+
+Mat laplacian(Mat img)
+{
+	Mat padded = add_border(img);
+	Mat kernel = kernel_(padded);
+	Mat result = Frequency_filter(padded, kernel);
+	return result;
+}
+
+Mat enchanced(Mat img, int c)
+{
+	Mat padded = add_border(img);
+	Mat kernel = kernel_(padded);
+	Mat result1 = Frequency_filter_e(padded, kernel, c);
+	return result1;
+}
+
+int main(int argv, char**argc)
+{
+	Mat img;
+	int c;
+
+	cout << "Enter the value of c :" << endl;
+	cin >> c;
+
+	img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH04\\Fig0458(a)(blurry_moon).tif",IMREAD_GRAYSCALE);
+	
+	Mat result = laplacian(img);
+	Mat result1 = enchanced(img,c);
+	//result1.convertTo(result1, CV_8UC3);
+
+	imshow("original", img);
+	imshow("laplacian", result);
+	imshow("enhanced", result1);
+
+	waitKey(0);
+	return 0;
+}
