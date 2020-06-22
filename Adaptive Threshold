@@ -1,0 +1,23 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/imgproc.hpp>
+#include<opencv2/highgui.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main()
+{
+	Mat img, img1, img2, kernel;
+	int x, y, top, bottom, left, right, sum, r;
+	img = imread("D:\\Projects\\lena.png", IMREAD_GRAYSCALE);
+	adaptiveThreshold(img, img1, 200, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 13, 0);
+	
+
+	imshow("IP", img);
+	imshow("OP", img1);
+
+	waitKey(0);
+	return 0;
+}
