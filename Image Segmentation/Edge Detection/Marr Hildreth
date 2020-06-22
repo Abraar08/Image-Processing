@@ -1,0 +1,150 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int *argv, char **argc)
+{
+	int x, y, m, s, kc, kr, kcc, krr, top, bottom, left, right, top1, bottom1, left1, right1;
+	Mat img, img1, kernel;
+
+
+	cout << "Enter the kernel size :" << endl;
+	cin >> m;
+	cout << "Enter the sigma value :" << endl;
+	cin >> s;
+	//img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH10\\Fig1025(a)(building_original).tif", IMREAD_GRAYSCALE);
+	img = imread("D:\\Projects\\b.jpg", IMREAD_GRAYSCALE);
+	kernel = Mat::zeros(m, m, CV_64FC1);
+
+
+	for (kr = 0; kr < kernel.rows; kr++)
+	{
+		for (kc = 0; kc < kernel.cols; kc++)
+		{
+			kernel.at<double>(kr, kc) = (1 / (2 * 3.14*pow(s, 2))*exp((-1))*(pow(kr, 2) + pow(kc, 2)) / (2 * pow(s, 2)));
+			/*sum += kernel.at<double>(kr, kc);*/
+		}
+	}
+
+	top = bottom = kernel.rows - 1;
+	left = right = kernel.cols - 1;
+	copyMakeBorder(img, img1, top, bottom, left, right, BORDER_CONSTANT, Scalar(0, 0, 0));
+	Mat img2 = Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+
+	for (x = 0; x < img1.rows - top; x++)
+	{
+		for (y = 0; y < img1.cols - left; y++)
+		{
+			for (kr = 0; kr < kernel.rows; kr++)
+			{
+				krr = kernel.rows - 1 - kr;
+				for (kc = 0; kc < kernel.cols; kc++)
+				{
+					kcc = kernel.cols - 1 - kc;
+					img2.at<float>(x + 1, y + 1) += img1.at<uchar>(x + kr, y + kc)*kernel.at<double>(krr, kcc);
+				}
+			}
+		}
+	}
+
+	normalize(img2, img2, 0, 255, NORM_MINMAX);
+	img2.convertTo(img2, CV_8UC1);
+
+	Mat kernel1 = (Mat_<float>(3, 3) << 1, 1, 1, 1, -8, 1, 1, 1, 1);
+	top1 = bottom1 = kernel1.rows - 1;
+	left1 = right1 = kernel1.cols - 1;
+	copyMakeBorder(img2, img2, top1, bottom1, left1, right1, BORDER_CONSTANT, Scalar(0, 0, 0));
+	Mat img3 = Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+	for (x = 0; x < img1.rows - top1; x++)
+	{
+		for (y = 0; y < img1.cols - left1; y++)
+		{
+			for (kr = 0; kr < kernel1.rows; kr++)
+			{
+				krr = kernel1.rows - 1 - kr;
+				for (kc = 0; kc < kernel1.cols; kc++)
+				{
+					kcc = kernel1.cols - 1 - kc;
+					img3.at<float>(x + 1, y + 1) += img2.at<uchar>(x + kr, y + kc)*kernel1.at <float>(krr, kcc);
+				}
+			}
+		}
+	}
+	
+	threshold(img3, img3, 0, 255, THRESH_BINARY);
+
+	Mat img4 = Mat::zeros(img3.rows, img3.cols, CV_8UC1);
+	
+		/*for (x = 1; x < img3.rows - 1; x++)
+		{
+			for (y = 1; y < img3.cols - 1; y++)
+			{
+				if ((img3.at<float>(x, y + 1) > 0 && img3.at<float>(x, y - 1) < 0) || (img3.at<float>(x, y + 1) < 0 && img3.at<float>(x, y - 1) > 0))
+				{
+					img4.at<uchar>(x, y) = 255;
+				}
+
+				if ((img3.at<float>(x + 1, y) > 0 && img3.at<float>(x - 1, y) < 0) || (img3.at<float>(x + 1, y) < 0 && img3.at<float>(x - 1, y) > 0))
+				{
+					img4.at<uchar>(x, y) = 255;
+				}
+				if ((img3.at<float>(x + 1, y + 1) > 0 && img3.at<float>(x - 1, y - 1) < 0) || (img3.at<float>(x + 1, y + 1) < 0 && img3.at<float>(x - 1, y - 1) > 0))
+				{
+					img4.at<uchar>(x, y) = 255;
+				}
+				if ((img3.at<float>(x - 1, y + 1) > 0 && img3.at<float>(x + 1, y - 1) < 0) || (img3.at<float>(x - 1, y + 1) < 0 && img3.at<float>(x + 1, y - 1) > 0))
+				{
+					img4.at<uchar>(x, y) = 255;
+				}
+
+				else
+					{
+						img4.at<uchar>(x, y) = 0;
+					}
+			}
+		}*/
+	for (x = 1; x < img3.rows - 1; x++)
+	{
+		for (y = 1; y < img3.cols - 1; y++)
+		{
+			if ((img3.at<float>(x, y + 1) >1 && img3.at<float>(x, y - 1) <1) || (img3.at<float>(x, y + 1) <1 && img3.at<float>(x, y - 1) >1))
+			{
+				img4.at<uchar>(x, y) = 255;
+			}
+
+			if ((img3.at<float>(x + 1, y) > 1 && img3.at<float>(x - 1, y) < 1) || (img3.at<float>(x + 1, y) < 1 && img3.at<float>(x - 1, y) > 1))
+			{
+				img4.at<uchar>(x, y) = 255;
+			}
+			if ((img3.at<float>(x + 1, y + 1) > 1 && img3.at<float>(x - 1, y - 1) < 1) || (img3.at<float>(x + 1, y + 1) < 1 && img3.at<float>(x - 1, y - 1) > 1))
+			{
+				img4.at<uchar>(x, y) = 255;
+			}
+			if ((img3.at<float>(x - 1, y + 1) > 1 && img3.at<float>(x + 1, y - 1) < 1) || (img3.at<float>(x - 1, y + 1) < 1 && img3.at<float>(x + 1, y - 1) > 1))
+			{
+				img4.at<uchar>(x, y) = 255;
+			}
+
+			else
+			{
+				img4.at<uchar>(x, y) = 0;
+			}
+		}
+	}
+	normalize(img3, img3, 0, 255, NORM_MINMAX);
+	img3.convertTo(img3, CV_8UC1);
+
+	imshow("original", img);
+	imshow("Padded", img1);
+	imshow("Smoothened", img2);
+	imshow("LoG", img3);
+	imshow("zero crossing", img4);
+	waitKey(0);
+	getchar();
+	return 0;
+}
