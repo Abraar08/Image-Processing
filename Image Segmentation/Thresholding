@@ -1,0 +1,115 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgproc.hpp>
+#include<opencv2/core.hpp>
+
+using namespace std;
+using namespace cv;
+
+void pixelFrequency(Mat img, int intensity[])
+{
+	for (int j = 0; j < img.rows; j++)
+		for (int i = 0; i < img.cols; i++)
+			intensity[int(img.at<uchar>(j, i))]++;
+}
+void pixelProbability(Mat img, double probability[], int intensity[])
+{
+	for (int i = 0; i < 256; i++)
+		probability[i] = intensity[i] / double(img.rows * img.cols);
+}
+
+int main(int *argv, char **argc)
+{
+	int mn, thresh, intensity[256] = { 0 };
+	double probability[256] = { 0 }, pk11 = 0, pk1[256] = { 0 }, pk22 = 0, pk2[256] = { 0 }, sum1 = 0, sum2 = 0, mk11 = 0, mk22 = 0, mg = 0, bm = 0, bcv[256], bcvi;
+	double mk1[256] = { 0 }, mk2[256] = { 0 }, sigma[256] = { 0 }, threshold;
+	Mat img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH10\\Fig1039(a)(polymersomes).tif", IMREAD_GRAYSCALE);
+
+	pixelFrequency(img, intensity);
+	pixelProbability(img, probability, intensity);
+
+	mn = img.rows*img.cols;
+	cout << "Enter the threshold value :" << "  ";
+	cin >> thresh;
+
+	imshow("original", img);
+
+	for (int i = 1; i <= thresh; i++)
+	{
+		pk1[0] = probability[0];
+		pk1[i] = probability[i]+pk1[i-1];
+		pk11 += probability[i];
+	}
+
+	for (int j = thresh + 1; j <= 255; j++)
+	{
+		pk2[0] = probability[0];
+		pk2[j] = probability[j] + pk2[j - 1];
+		pk22 += probability[j];
+	}
+
+
+	for (int i = 1; i <= thresh; i++)
+	{
+		mk1[i] = i * probability[i];
+		sum1 += i * probability[i];
+		mk11 = (1 / pk11)*sum1;
+	}
+
+	for (int j = thresh + 1; j <= 256; j++)
+	{
+		mk1[j] = j * probability[j];
+		sum2 += j * probability[j];
+		mk22 = (1 / pk22)*sum2;
+	}
+
+	for (int k = 0; k < 256; k++)
+	{
+		mg += k * probability[k];
+	}
+
+	for (int k = 0; k < 256; k++)
+	{
+		bcv[k] = pk1[k] * pow((mk1[k] - mg), 2) + pk2[k] * pow((mk2[k] - mg), 2);
+	}
+
+	/*bcvi = pk11 * pow((mk1 - mg), 2) + pk22 * pow((mk2 - mg), 2);*/
+
+	for (int k = 0; k < 256; k++)
+	{
+		bm += pow((k - mg), 2)*probability[k];
+	}
+
+	for (int k = 0; k < 256; k++)
+	{
+		sigma[k] = bcv[k] / bm;
+
+		if (sigma[0] < sigma[k])
+		{
+			sigma[0] = sigma[k];
+		}
+	}
+	
+	threshold = sigma[0];
+
+	for (int i = 0; i < img.rows; i++)
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
+			if (img.at<uchar>(i, j) < threshold)
+			{
+				img.at<uchar>(i, j) = 255;
+			}
+			else
+			{
+				img.at<uchar>(i, j) = 0;
+			}
+		}
+	}
+
+	imshow("Thresholded", img);
+	waitKey(0);
+	getchar();
+	return 0;
+}
