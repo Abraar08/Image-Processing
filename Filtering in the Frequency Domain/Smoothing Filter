@@ -1,0 +1,240 @@
+#include<iostream>
+#include<opencv2/opencv_modules.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+
+Mat image_make_border(Mat img)
+{
+	Mat padded;
+	int m, n, top, bottom, left, right;
+	m = getOptimalDFTSize(img.rows);
+	n = getOptimalDFTSize(img.cols);
+	top = (m - img.rows)/2;
+	bottom = top;
+	left = (n - img.cols)/2;
+	right = left;
+
+	copyMakeBorder(img, padded, top, bottom, left, right, BORDER_CONSTANT, 0);
+	padded.convertTo(padded, CV_32FC1);
+	return padded;
+}
+
+Mat frequency_filter(Mat padded, Mat ideal_kernel)
+{
+	Mat complexI;
+	int cxr, cyr, cxi, cyi;
+	Mat planes[] = { padded, Mat::zeros(padded.rows, padded.cols, CV_32FC1) };
+	merge(planes, 2, complexI);
+	dft(complexI, complexI);
+
+	split(complexI, planes);
+
+	//magnitude(planes[0], planes[1], planes[0]);
+	
+	//real
+	cxr = planes[0].cols / 2;
+	cyr = planes[0].rows / 2;
+
+	Mat q0r(planes[0], Rect(0, 0, cxr, cyr));
+	Mat q1r(planes[0], Rect(cxr, 0, cxr, cyr));
+	Mat q2r(planes[0], Rect(0, cyr, cxr, cyr));
+	Mat q3r(planes[0], Rect(cxr, cyr, cxr, cyr));
+
+	Mat temp;
+	q0r.copyTo(temp);
+	q3r.copyTo(q0r);
+	temp.copyTo(q3r);
+
+	q1r.copyTo(temp);
+	q2r.copyTo(q1r);
+	temp.copyTo(q2r);
+
+	//Imaginary
+	cxi = planes[1].cols / 2;
+	cyi = planes[1].rows / 2;
+
+	Mat q0i(planes[1], Rect(0, 0, cxi, cyi));
+	Mat q1i(planes[1], Rect(cxi, 0, cxi, cyi));
+	Mat q2i(planes[1], Rect(0, cyi, cxi, cyi));
+	Mat q3i(planes[1], Rect(cxi, cyi, cxi, cyi));
+
+	Mat temp1;
+	q0i.copyTo(temp);
+	q3i.copyTo(q0i);
+	temp.copyTo(q3i);
+
+	q1i.copyTo(temp);
+	q2i.copyTo(q1i);
+	temp.copyTo(q2i);
+
+
+	//***************** The product of the filter function and the DFT result ******************
+	Mat blur_r, blur_i, BLUR;
+	multiply(planes[0], ideal_kernel, blur_r); 
+	multiply(planes[1], ideal_kernel, blur_i); 
+	Mat plane1[] = { blur_r, blur_i };
+	merge(plane1, 2, BLUR);
+
+	//*********************Get the original spectrum map********************** *************
+	magnitude(planes[0], planes[1], planes[0]);
+	planes[0] += Scalar::all(1); 
+	log(planes[0], planes[0]); 
+	normalize(planes[0], planes[0], 0, 1, NORM_MINMAX); 
+	imshow("spectrum", planes[0]);
+
+	idft(BLUR, BLUR); 
+	split(BLUR, planes);
+	magnitude(planes[0], planes[1], planes[0]); 
+	normalize(planes[0], planes[0], 0, 1, NORM_MINMAX); 
+	return planes[0];
+}
+
+Mat ideal_lp_kernel(Mat img, float sigma)
+{
+	Mat ilpf(img.size(), CV_32FC1); 
+	float d0 = sigma;
+	for (int i = 0; i < img.rows; i++) {
+		for (int j = 0; j < img.cols; j++) {
+			double d = sqrt(pow((i - img.rows / 2), 2) + pow((j - img.cols / 2), 2));
+			if (d <= d0)
+			{
+				ilpf.at<float>(i, j) = 1;
+			}
+			else
+			{
+				ilpf.at<float>(i, j) = 0;
+			}
+		}
+	}
+	imshow("ILPF", ilpf);
+	//cout << ilpf << endl;
+	return ilpf;
+
+}
+
+Mat ideal_lpf(Mat img, float sigma)
+{
+	Mat padded = image_make_border(img);
+	Mat ideal_kernel = ideal_lp_kernel(padded, sigma);
+	Mat result = frequency_filter(padded, ideal_kernel);
+	return result;
+}
+
+Mat butt_lp_kernel(Mat padded, float sigma)
+{
+	Mat butt_lpf(padded.rows, padded.cols, CV_32FC1);
+	float n, d0 = sigma;
+	int i, j;
+	cout << "Enter the order n :" << endl;
+	cin >> n;
+	for (i = 0; i < padded.rows; i++)
+	{
+		for (j = 0; j < padded.cols; j++)
+		{
+			double d = sqrt(pow((i - padded.rows / 2), 2) + pow((j - padded.cols / 2), 2));
+			butt_lpf.at<float>(i, j) = 1 / (1 + pow((d / d0), 2 * n));
+		}
+	}
+	imshow("Butt", butt_lpf);
+	return butt_lpf;
+}
+
+Mat butt_lpf(Mat img, float sigma)
+{
+	Mat padded = image_make_border(img);
+	Mat butt_kernel = butt_lp_kernel(padded, sigma);
+	Mat result = frequency_filter(padded, butt_kernel);
+	return result;
+}
+
+Mat gaus_lp_kernel(Mat padded, float sigma)
+{
+	Mat glpf(padded.rows, padded.cols, CV_32FC1);
+	float d0 = sigma;
+	int i, j;
+	for (i = 0; i < padded.rows; i++)
+	{
+		for (j = 0; j < padded.cols; j++)
+		{
+			double d = sqrt(pow((i - padded.rows / 2), 2) +pow((j - padded.cols / 2), 2));
+			glpf.at<float>(i, j) = exp(-pow(d, 2) / (2 * pow(d0, 2)));
+		}
+	}
+	imshow("Gauss", glpf);
+	return glpf;
+}
+
+Mat gaus_lpf(Mat img, float sigma)
+{
+	Mat padded = image_make_border(img);
+	Mat gaus_kernel = gaus_lp_kernel(padded, sigma);
+	Mat result = frequency_filter(padded, gaus_kernel);
+	return result;
+
+}
+
+int main(int argv, char** argc)
+{	
+	int n;
+	Mat img, padded, complexI, magI, kernel;
+	float sigma;
+	img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH04\\Fig0441(a)(characters_test_pattern).tif", IMREAD_GRAYSCALE);
+
+	if (!img.data)
+	{
+		cout << "Image not read !!" << endl;
+		getchar();
+		return -1;
+	}
+
+	cout << "Enter your options :" << endl;
+	cout << "1. IDEAL LPF  2. BUTTERWORTH LPF  3. GAUSSIAN LPF" << endl;
+	cin >> n;
+
+	cout << "Enter the value of sigma :" << endl;
+	cin >> sigma;
+
+
+	switch (n)
+	{
+	case 1:
+	{
+		Mat ideal_low = ideal_lpf(img, sigma);
+		ideal_low = ideal_low(cv::Rect(0, 0, img.cols, img.rows));
+		imshow("ideal low pass", ideal_low);
+		break;
+	}
+	case 2:
+	{
+		Mat butt_low = butt_lpf(img, sigma);
+		butt_low = butt_low(Rect(0, 0, img.cols, img.rows));
+		imshow("Butterworth LPF", butt_low);
+		break;
+
+	}
+	case 3:
+	{
+		Mat gaus_low = gaus_lpf(img, sigma);
+		gaus_low = gaus_low(Rect(0, 0, img.cols, img.rows));
+		imshow("Gaussian LPF", gaus_low);
+		break;
+	}
+
+	default :
+	{
+		cout << "Enter a valid option!!" << endl;
+		break;
+	}
+	}
+
+
+	waitKey(0);
+	return 0;
+
+}
+
