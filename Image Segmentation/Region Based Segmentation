@@ -1,0 +1,83 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgproc.hpp>
+#include<opencv2/core.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int *argv, char **argc)
+{
+	Mat img, img1, img2, img3;
+	img = imread("D:\\Projects\\b.jpg", IMREAD_GRAYSCALE);
+	img1 = Mat(img.size(), CV_8UC1);
+	img2 = Mat(img.size(), CV_8UC1);
+
+	for (int i = 0; i < img.rows; i++)
+	{
+		for (int j = 0; j < img.cols; j++)
+		{
+			if (img.at<uchar>(i, j) == 255)
+			{
+				img1.at<uchar>(i, j) = 255;
+			}
+			else
+			{
+				img1.at<uchar>(i, j) = 0;
+			}
+		}
+	}
+	img2 = img1.clone();
+
+	for (int i = 1; i < img1.rows - 1; i++)
+	{
+		for (int j = 1; j < img1.cols - 1; j++)
+		{
+			if (img1.at<uchar>(i, j) == 255)
+			{
+				if (img.at<uchar>(i - 1, j - 1) > 200)
+				{
+					img2.at<uchar>(i - 1, j - 1) = 255;
+				}
+				if (img.at<uchar>(i - 1, j) > 200)
+				{
+					img2.at<uchar>(i - 1, j) = 255;
+				}
+				if (img.at<uchar>(i - 1, j + 1) > 200)
+				{
+					img2.at<uchar>(i - 1, j + 1) = 255;
+				}
+				if (img.at<uchar>(i, j - 1) > 200)
+				{
+					img2.at<uchar>(i, j) = 255;
+				}
+				if (img.at<uchar>(i, j + 1) > 200)
+				{
+					img2.at<uchar>(i, j + 1) = 255;
+				}
+				if (img.at<uchar>(i + 1, j - 1) > 200)
+				{
+					img2.at<uchar>(i + 1, j - 1) = 255;
+				}
+				if (img.at<uchar>(i + 1, j) > 200)
+				{
+					img2.at<uchar>(i + 1, j) = 255;
+				}
+				if (img.at<uchar>(i + 1, j + 1) > 200)
+				{
+					img2.at<uchar>(i + 1, j + 1) = 255;
+				}
+			}
+		}
+	}
+	threshold(img, img3, 225, 255, THRESH_BINARY);
+
+	imshow("Input", img);
+	imshow("Seed", img1);
+	imshow("connected", img2);
+	imshow("Seg", img3);
+
+	waitKey(0);
+	return 0;
+}
