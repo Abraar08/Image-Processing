@@ -1,0 +1,72 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/highgui.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int *argv, char **argc)
+{
+	Mat src, dst, mat, inter;
+	int i, j, top, bottom, left, right;
+	float i1, j1, xx, yy;
+	double theta, angle;
+
+	cout << "Enter the value of theta :" << "  ";
+	cin >> theta;
+
+	angle = (theta*22/7)/180;
+	src = imread("D:\\Projects\\b.jpg", IMREAD_GRAYSCALE);
+	dst = Mat::zeros(src.rows, src.cols, src.type());
+	Point2f c (src.cols / 2, src.rows / 2);
+	xx = (1 - cos(angle))*c.x - (sin(angle)*c.y);
+	yy = ((sin(angle)*c.x) + (1 - cos(angle))*c.y);
+
+	mat = (Mat_<float>(2, 3) << cos(angle), sin(angle), xx, -sin(angle), cos(angle), yy);
+	cout << mat << endl;
+
+
+	if (yy < 0)
+	{
+		top = bottom = -yy;
+	}
+	else
+	{
+		top = bottom = yy;
+	}
+
+	if (xx < 0)
+	{
+		left = right = -xx;
+	}
+	else
+	{
+		left = right = xx;
+	}
+
+	copyMakeBorder(src, inter, top, bottom, left, right, BORDER_CONSTANT, 0);
+
+
+	for (int i = 0; i < dst.rows; i++)
+	{
+		for (int j = 0; j < dst.cols; j++)
+		{
+			i1 = i * mat.at<float>(0, 0) + j * mat.at<float>(0, 1) + mat.at<float>(0, 2);
+			j1 = i * mat.at<float>(1, 0) + j * mat.at<float>(1, 1) + mat.at<float>(1, 2);
+
+			if ((i1 < src.rows) && (j1 < src.cols) && (i1 > 0) && (j1 > 0))
+			{
+				dst.at<uchar>(i, j) = src.at<uchar>(i1, j1);
+			}
+		}
+	}
+
+
+	imshow("IP", src);
+	imshow("OP", dst);
+
+	waitKey(0);
+	return 0;
+}
