@@ -1,0 +1,68 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/highgui.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int *argv, char **argc)
+{
+	Mat src, dst, mat, inter;
+	int i, j, top, bottom, left, right, sx, sy;
+	float i1, j1;
+
+	cout << "Enter the value of Sx & Sy :" << "  ";
+	cin >> sx >> sy;;
+
+	src = imread("D:\\Projects\\b.jpg", IMREAD_GRAYSCALE);
+	dst = Mat::zeros(src.rows, src.cols, src.type());
+	
+
+	mat = (Mat_<float>(2, 3) << 1, sy, 0, sx, 1, 0);
+	cout << mat << endl;
+
+
+	if (sy < 0)
+	{
+		top = bottom = -sy;
+	}
+	else
+	{
+		top = bottom = sy;
+	}
+
+	if (sx < 0)
+	{
+		left = right = -sx;
+	}
+	else
+	{
+		left = right = sx;
+	}
+
+	copyMakeBorder(src, inter, top, bottom, left, right, BORDER_CONSTANT, 0);
+
+
+	for (int i = 0; i < dst.rows; i++)
+	{
+		for (int j = 0; j < dst.cols; j++)
+		{
+			i1 = i * mat.at<float>(0, 0) + j * mat.at<float>(0, 1) + mat.at<float>(0, 2);
+			j1 = i * mat.at<float>(1, 0) + j * mat.at<float>(1, 1) + mat.at<float>(1, 2);
+
+			if ((i1 < src.rows) && (j1 < src.cols) && (i1 > 0) && (j1 > 0))
+			{
+				dst.at<uchar>(i, j) = src.at<uchar>(i1, j1);
+			}
+		}
+	}
+
+
+	imshow("IP", src);
+	imshow("OP", dst);
+
+	waitKey(0);
+	return 0;
+}
