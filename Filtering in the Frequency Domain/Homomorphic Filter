@@ -1,0 +1,150 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+Mat border(Mat img)
+{
+	Mat padded;
+	int m, n, top, bottom, left, right;
+	m = getOptimalDFTSize(img.rows);
+	n = getOptimalDFTSize(img.cols);
+	top = (m - img.rows) / 2;
+	bottom = top;
+	left = (n - img.cols) / 2;
+	right = left;
+
+	copyMakeBorder(img, padded, top, bottom, left, right, BORDER_CONSTANT, 0);
+	return padded;
+}
+
+Mat hommorph(Mat padded, Mat kernel)
+{
+	int cxr, cyr, cxi, cyi;
+	Mat planes[] = { padded,Mat::zeros(padded.rows,padded.cols,CV_32FC1) };
+	Mat complex;
+	merge(planes, 2, complex);
+	
+
+	dft(complex, complex);
+
+	split(complex, planes);
+
+	cxr = planes[0].cols / 2;
+	cyr = planes[0].rows / 2;
+
+	Mat q0r(planes[0], Rect(0, 0, cxr, cyr));
+	Mat q1r(planes[0], Rect(cxr, 0, cxr, cyr));
+	Mat q2r(planes[0], Rect(0, cyr, cxr, cyr));
+	Mat q3r(planes[0], Rect(cxr, cyr, cxr, cyr));
+
+	Mat temp;
+	q0r.copyTo(temp);
+	q3r.copyTo(q0r);
+	temp.copyTo(q3r);
+
+	q1r.copyTo(temp);
+	q2r.copyTo(q1r);
+	temp.copyTo(q2r);
+
+	cxi = planes[1].cols / 2;
+	cyi = planes[1].rows / 2;
+
+	Mat q0i(planes[1], Rect(0, 0, cxi, cyi));
+	Mat q1i(planes[1], Rect(cxi, 0, cxi, cyi));
+	Mat q2i(planes[1], Rect(0, cyi, cxi, cyi));
+	Mat q3i(planes[1], Rect(cxi, cyi, cxi, cyi));
+
+	Mat temp1;
+	q0i.copyTo(temp1);
+	q3i.copyTo(q0i);
+	temp1.copyTo(q3i);
+
+	q1i.copyTo(temp1);
+	q2i.copyTo(q1i);
+	temp1.copyTo(q2i);
+
+
+	Mat sharp_r, sharp_i, SHARP;
+
+	multiply(planes[0], kernel, sharp_r);
+	multiply(planes[1], kernel, sharp_i);
+
+	Mat sharp[] = { sharp_r, sharp_i };
+	merge(sharp, 2, SHARP);
+
+	magnitude(planes[0], planes[1], planes[0]);
+	planes[0] += Scalar::all(1);
+	log(planes[0], planes[0]);
+	normalize(planes[0], planes[0], 1, 0, NORM_MINMAX);
+	imshow("spectrum_L", planes[0]);
+
+	idft(SHARP, SHARP);
+	split(SHARP, sharp);
+
+	magnitude(sharp[0], sharp[1], sharp[0]);
+	normalize(sharp[0], sharp[0], 1, 0, NORM_MINMAX);
+
+	for (int x = 0; x < sharp[0].rows; x++)
+	{
+		for (int y = 0; y < sharp[0].cols; y++)
+		{
+			sharp[0].at<float>(x, y) = exp(sharp[0].at<float>(x, y));
+		}
+	}
+	return sharp[0];
+}
+
+Mat kernel_h(Mat padded, float rl, float rh, float sigma, int c)
+{
+	Mat kernel(padded.size(), CV_32FC1);
+	float d0 = sigma;
+	for (int x = 0; x < kernel.rows; x++)
+	{
+		for (int y = 0; y < kernel.cols; y++)
+		{
+			double d = sqrt(pow(x - kernel.rows / 2, 2) + pow(y - kernel.cols / 2, 2));
+			kernel.at<float>(x, y) = (rh - rl)*(1 - exp((-1)*(c)*(pow(d, 2) / pow(d0, 2)))) + rl;
+		}
+	}
+	return kernel;
+}
+
+int main(int agv, char**argc)
+{
+	Mat img;
+	int c;
+	float rl, rh, sigma;
+
+	cout << "Enter the value of rl, rh, sigma and c respectively" << endl;
+	cin >> rl >> rh >> sigma >> c;
+
+	img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH04\\Fig0462(a)(PET_image).tif",IMREAD_GRAYSCALE);
+
+	for (int x = 0; x < img.rows; x++)
+	{
+		for (int y = 0; y < img.cols; y++)
+		{
+			img.at<uchar>(x, y) = log(img.at<uchar>(x, y));
+		}
+	}
+
+	Mat padded = border(img);
+	padded.convertTo(padded, CV_32FC1);
+
+	//cout << padded << endl;
+
+	Mat kernel = kernel_h(padded, rl, rh, sigma, c);
+	Mat homomorphic_filter = hommorph(padded, kernel);
+
+	imshow("original", img);
+	imshow("Homomorphic filter", homomorphic_filter);
+
+	waitKey(0);
+	return 0;
+
+}
