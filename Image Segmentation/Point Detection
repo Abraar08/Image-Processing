@@ -1,0 +1,73 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int *argv, char **argc)
+{
+	Mat img, img1, kernel;
+	int top, bottom, right, left, x, y, kr, kc, krr, kcc;
+	int borderType = BORDER_CONSTANT;
+	img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH10\\Fig1004(b)(turbine_blade_black_dot).tif", IMREAD_GRAYSCALE);
+
+	//kernel = (Mat_<float>(3, 3) << 1, 1, 1, 1, -8, 1, 1, 1, 1);
+	kernel = (Mat_<float>(3, 3) << 0, 1, 0, 1, -4, 1, 0, 1, 0);
+
+	cout << kernel << endl;
+	//ZERO-PADDING
+	top = kernel.rows - 1; bottom = top;
+	left = kernel.cols - 1; right = left;
+	copyMakeBorder(img, img1, top, bottom, left, right, BORDER_CONSTANT, Scalar(0, 0, 0));
+	Mat img2 = Mat::zeros(img1.rows, img1.cols, CV_32FC1);
+
+
+
+	for (x = 0; x < img1.rows - top; x++)
+	{
+		for (y = 0; y < img1.cols - left; y++)
+		{
+			for (kr = 0; kr < kernel.rows; kr++)
+			{
+				krr = kernel.rows - 1 - kr;
+				for (kc = 0; kc < kernel.cols; kc++)
+				{
+					kcc = kernel.cols - 1 - kc;
+					img2.at<float>(x + 1, y + 1) += img1.at<uchar>(x + kr, y + kc)*kernel.at<float>(krr, kcc);
+				}
+			}
+		}
+	}
+
+	img2.convertTo(img2, CV_8UC1);
+
+	Mat img3 = Mat::zeros(img2.size(), CV_8UC1);
+
+	int T = (255 * 90) / 100;
+
+	for (x = 0; x < img2.rows; x++)
+	{
+		for (y = 0; y < img2.cols; y++)
+		{
+			if (img2.at<uchar>(x, y) >= T)
+			{
+				img3.at<uchar>(x, y) = 255;
+			}
+			else
+			{
+				img3.at<uchar>(x, y) = 0;
+			}
+		}
+	}
+
+	imshow("Input image", img);
+	imshow("convolved image", img2);
+	imshow("point detected image", img3);
+
+	waitKey(0);
+	getchar();
+	return 0;
+}
