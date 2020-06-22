@@ -1,0 +1,202 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/core.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main(int argv, char** argc)
+{
+	Mat img, img1, kernel, kernel1;
+	int top, bottom, right, left, m, x, y, kr, kc, ri;
+	int borderType = BORDER_CONSTANT;
+	img = imread("D:\\Books\\Image Processing\\Images\\DIP3E_Original_Images_CH09\\Fig0911(a)(noisy_fingerprint).tif", IMREAD_GRAYSCALE);
+
+	cout << "Enter the size of the kernel:" << " ";
+	cin >> m;
+
+	if (m % 2 == 0)
+	{
+		cout << "Invalid kernel size!" << endl << "Enter a valid kernel size :" << endl;
+		waitKey(0);
+		getchar();
+		return -1;
+
+	}
+
+	else if (m > img.rows || m > img.cols)
+	{
+		cout << "Invalid kernel size!" << endl << "Enter a valid kernel size :" << endl;
+		waitKey(0);
+		getchar();
+		return -1;
+	}
+
+	else
+	{
+		kernel = Mat::ones(m, m, CV_8UC1);
+	}
+
+	for (int ki = 0; ki < kernel.rows; ki++)
+	{
+		for (int kj = 0; kj < kernel.cols; kj++)
+		{
+			if (kernel.at<uchar>(ki, kj) == 1)
+			{
+				kernel.at<uchar>(ki, kj) == 255;
+			}
+			else if (kernel.at<uchar>(ki, kj) == 0)
+			{
+				kernel.at<uchar>(ki, kj) = 0;
+			}
+		}
+	}
+
+	kernel1 = (Mat_<uchar>(3, 3) << 0, 1, 0, 1, 1, 1, 0, 1, 0);
+	for (int ki = 0; ki < kernel1.rows; ki++)
+	{
+		for (int kj = 0; kj < kernel1.cols; kj++)
+		{
+			if (kernel1.at<uchar>(ki, kj) == 0)
+			{
+				kernel1.at<uchar>(ki, kj) = 0;
+			}
+			else if (kernel1.at<uchar>(ki, kj) == 1)
+			{
+				kernel1.at<uchar>(ki, kj) = 255;
+			}
+		}
+	}
+
+	//ZERO-PADDING
+	top = (m - 1); bottom = top;
+	left = (m - 1); right = left;
+	copyMakeBorder(img, img1, top, bottom, left, right, BORDER_CONSTANT, 0);
+	Mat img2 = Mat::zeros(img1.rows, img1.cols, CV_8UC1);
+	Mat img3 = Mat::zeros(img1.rows, img1.cols, CV_8UC1);
+	Mat img4 = Mat::zeros(img1.rows, img1.cols, CV_8UC1);
+	Mat img5 = Mat::zeros(img1.rows, img1.cols, CV_8UC1);
+
+	for (int i = 0; i < img1.rows; i++)
+	{
+		for (int j = 0; j < img1.cols; j++)
+		{
+			if (img1.at<uchar>(i, j) < 127)
+			{
+				img1.at<uchar>(i, j) == 0;
+			}
+			else if (img1.at<uchar>(i, j) >= 127)
+			{
+				img1.at<uchar>(i, j) == 255;
+			}
+		}
+	}
+
+	for (x = 0; x < img1.rows - top; x++)
+	{
+
+		for (y = 0; y < img1.cols - left; y++)
+		{
+			ri = 0;
+			for (kr = 0; kr < kernel.rows; kr++)
+			{
+				for (kc = 0; kc < kernel.cols; kc++)
+				{
+					ri += img1.at<uchar>(x + kr, y + kc) and kernel.at<uchar>(kr, kc);
+				}
+			}
+
+			if (ri == m * m)
+			{
+				img2.at<uchar>(x + 1, y + 1) = 255;
+			}
+			else
+			{
+				img2.at<uchar>(x + 1, y + 1) = 0;
+			}
+		}
+	}
+
+	for (x = 0; x < img2.rows - top; x++)
+	{
+		for (y = 0; y < img2.cols - left; y++)
+		{
+			ri = 0;
+			for (kr = 0; kr < kernel1.rows; kr++)
+			{
+				for (kc = 0; kc < kernel1.cols; kc++)
+				{
+					ri += img2.at<uchar>(x + kr, y + kc) or kernel1.at<uchar>(kr, kc);
+				}
+			}
+			if (ri > 5)
+			{
+				img3.at<uchar>(x + 1, y + 1) = 255;
+			}
+			else
+			{
+				img3.at<uchar>(x + 1, y + 1) = 0;
+			}
+		}
+	}
+
+	for (x = 0; x < img3.rows - top; x++)
+	{
+		for (y = 0; y < img3.cols - left; y++)
+		{
+			ri = 0;
+			for (kr = 0; kr < kernel1.rows; kr++)
+			{
+				for (kc = 0; kc < kernel1.cols; kc++)
+				{
+					ri += img3.at<uchar>(x + kr, y + kc) or kernel1.at<uchar>(kr, kc);
+				}
+			}
+			if (ri > 5)
+			{
+				img4.at<uchar>(x + 1, y + 1) = 255;
+			}
+			else
+			{
+				img4.at<uchar>(x + 1, y + 1) = 0;
+			}
+		}
+	}
+
+	for (x = 0; x < img4.rows - top; x++)
+	{
+
+		for (y = 0; y < img4.cols - left; y++)
+		{
+			ri = 0;
+			for (kr = 0; kr < kernel.rows; kr++)
+			{
+				for (kc = 0; kc < kernel.cols; kc++)
+				{
+					ri += img4.at<uchar>(x + kr, y + kc) and kernel.at<uchar>(kr, kc);
+				}
+			}
+
+			if (ri == m * m)
+			{
+				img5.at<uchar>(x + 1, y + 1) = 255;
+			}
+			else
+			{
+				img5.at<uchar>(x + 1, y + 1) = 0;
+			}
+		}
+	}
+
+	imshow("Input image", img);
+	imshow("erode", img2);
+	imshow("opening", img3);
+	imshow("dilate", img4);
+	imshow("closed", img5);
+
+	waitKey(0);
+	getchar();
+	return 0;
+}
