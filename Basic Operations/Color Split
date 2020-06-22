@@ -1,0 +1,58 @@
+#include <opencv2/core/core.hpp> 
+#include <opencv2/highgui/highgui.hpp> 
+#include <iostream>
+
+using namespace cv;
+using namespace std;
+
+int main()
+{
+	const float pi = 3.14;
+	Mat img1, img2, img3, img4;
+	img1 = imread("D:\\Projects\\Opencv\\Basic op\\bgr.png", IMREAD_COLOR);
+	img2 = Mat::eye(img1.rows, img1.cols, CV_8UC1);
+	img3 = Mat::eye(img1.rows, img1.cols, CV_8UC1);
+	img4 = Mat::eye(img1.rows, img1.cols, CV_8UC1);
+
+	if (!img1.data)
+	{
+		cout << "Error loading src1 \n" << endl;
+		return -1;
+	}
+
+	for (int i = 0; i < img1.rows; i++) {
+		for (int j = 0; j < img1.cols; j++)
+		{
+			Vec3b color1 = img1.at<Vec3b>(Point(i, j));
+			Scalar color2 = img2.at<uchar>(Point(i, j));
+			Scalar color3 = img3.at<uchar>(Point(i, j));
+			Scalar color4 = img4.at<uchar>(Point(i, j));
+
+			color2.val[0] = color1.val[0];
+			color3.val[0] = color1.val[1];
+			color4.val[0] = color1.val[2];
+
+			img2.at<uchar>(Point(i, j)) = color2.val[0];
+			img3.at<uchar>(Point(i, j)) = color3.val[0];
+			img4.at<uchar>(Point(i, j)) = color4.val[0];
+		}
+	}
+
+	namedWindow("Original Image", WINDOW_AUTOSIZE);
+	imshow("Original Image", img1);
+
+
+	namedWindow("Blue Channel Image", WINDOW_AUTOSIZE);
+	imshow("Blue Channel Image", img2);
+
+
+	namedWindow("Green Channel Image", WINDOW_AUTOSIZE);
+	imshow("Green Channel Image", img3);
+
+	namedWindow("Red Channel Image", WINDOW_AUTOSIZE);
+	imshow("Red Channel Image", img4);
+
+
+	waitKey(0);
+	return 0;
+}
