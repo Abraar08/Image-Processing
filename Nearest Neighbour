@@ -1,0 +1,52 @@
+#include<iostream>
+#include<opencv2/opencv.hpp>
+#include<opencv2/highgui.hpp>
+#include<opencv2/imgcodecs.hpp>
+#include<opencv2/core.hpp>
+
+using namespace std;
+using namespace cv;
+
+int main()
+{
+	int  i, j, m, n;
+	float sr, sc, dr, dc, ratior, ratioc;
+	Mat src, dst;
+
+	/*src = (Mat_<uchar>(3, 3) << 1, 2, 3, 4, 5, 6, 7, 8, 9);*/
+	src = imread("D:\\Projects\\wt.jpg", IMREAD_GRAYSCALE);
+	cout << "Enter the size of dst :" << endl;
+	cin >> m >> n;
+
+	dst = Mat::zeros(m, n, CV_8UC1);
+	sr = src.rows;
+	sc = src.cols;
+
+	//Define destination rows and columns
+
+	dr = dst.rows;
+	dc = dst.cols;
+
+	ratior = (float)(sr / dr);
+	ratioc = (float)(sc / dc);
+
+	for (i = 0; i < dst.rows-1; i++)
+	{
+		for (j = 0; j < dst.cols-1; j++)
+		{
+			int a = 0, b = 0;
+			a = round(i*ratior);
+			b = round(j*ratioc);
+			dst.at<uchar>(i, j) = src.at<uchar>(a, b);
+		}
+	}
+
+	imshow("Ip", src);
+	imshow("Interpolated", dst);
+
+	waitKey(0);
+	getchar();
+	return 0;
+}
+
+// https://www.imageeprocessing.com/2017/11/nearest-neighbor-interpolation.html
